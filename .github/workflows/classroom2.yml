@@ -1,0 +1,42 @@
+name: Build and Test for Classrooms
+
+on:
+  push:
+    branches:
+      - holymaster
+  workflow_dispatch:
+  repository_dispatch:
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up dependencies
+        run: sudo apt-get update && sudo apt-get install -y g++
+
+      - name: Build tests
+        run: |
+          mkdir -p testout
+          for i in $(find . -name '*_test.cpp'); do
+            g++ -std=c++11 "$i" -o "testout/$(basename "$i" .cpp)";
+          done
+
+      - name: Run tests
+        run: |
+          for i in testout/*_test; do
+            "$i" -d yes;
+          done
+
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          TEST_RESULTS: "${{ steps.test.outputs.result }}"
